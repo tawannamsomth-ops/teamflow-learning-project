@@ -5,6 +5,7 @@ import {
   DatePicker,
   Drawer,
   Form,
+  Grid,
   Input,
   List,
   Select,
@@ -43,6 +44,8 @@ export function TaskDrawer({
   onClose,
   onChanged,
 }: Props) {
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [form] = Form.useForm();
   const [task, setTask] = useState<Task | null>(null);
   const [comment, setComment] = useState('');
@@ -131,17 +134,18 @@ export function TaskDrawer({
   return (
     <Drawer
       title="Task details"
-      width={480}
+      size={isMobile ? '100%' : 480}
       open={open}
       onClose={onClose}
       destroyOnHidden
+      placement="right"
       extra={
         <Button danger onClick={() => void removeTask()}>
-          Delete
+          Delete task
         </Button>
       }
     >
-      <Form form={form} layout="vertical" onFinish={save}>
+      <Form form={form} layout="vertical" onFinish={save} requiredMark={false}>
         <Form.Item name="title" label="Title" rules={[{ required: true }]}>
           <Input />
         </Form.Item>
@@ -181,8 +185,8 @@ export function TaskDrawer({
           />
           <Button onClick={() => void createLabel()}>Add label</Button>
         </Space.Compact>
-        <Button type="primary" htmlType="submit" loading={saving} block>
-          Save task
+        <Button type="primary" htmlType="submit" loading={saving} block size="large">
+          Save changes
         </Button>
       </Form>
 

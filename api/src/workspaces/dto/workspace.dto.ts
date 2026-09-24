@@ -9,6 +9,13 @@ export class CreateWorkspaceDto {
   name!: string;
 }
 
+export class UpdateWorkspaceDto {
+  @ApiProperty()
+  @IsString()
+  @MinLength(1)
+  name!: string;
+}
+
 export class AddMemberDto {
   @ApiProperty()
   @IsString()

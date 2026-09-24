@@ -5,11 +5,31 @@ import {
 } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { AddMemberDto, CreateWorkspaceDto } from './dto/workspace.dto';
+import {
+  AddMemberDto,
+  CreateWorkspaceDto,
+  UpdateWorkspaceDto,
+} from './dto/workspace.dto';
 
 @Injectable()
 export class WorkspacesService {
   constructor(private prisma: PrismaService) {}
+
+  private async requireMember(userId: string, workspaceId: string) {
+    const member = await this.prisma.workspaceMember.findUnique({
+      where: { userId_workspaceId: { userId, workspaceId } },
+    });
+    if (!member) throw new ForbiddenException('Not a workspace member');
+    return member;
+  }
+
+  private async requireOwnerOrAdmin(userId: string, workspaceId: string) {
+    const member = await this.requireMember(userId, workspaceId);
+    if (member.role !== Role.OWNER && member.role !== Role.ADMIN) {
+      throw new ForbiddenException('Only owners/admins can do this');
+    }
+    return member;
+  }
 
   listForUser(userId: string) {
     return this.prisma.workspace.findMany({
@@ -48,13 +68,33 @@ export class WorkspacesService {
     return ws;
   }
 
-  async addMember(actorId: string, workspaceId: string, dto: AddMemberDto) {
-    const actor = await this.prisma.workspaceMember.findUnique({
-      where: { userId_workspaceId: { userId: actorId, workspaceId } },
+  async update(userId: string, workspaceId: string, dto: UpdateWorkspaceDto) {
+    await this.requireOwnerOrAdmin(userId, workspaceId);
+    await this.get(userId, workspaceId);
+    return this.prisma.workspace.update({
+      where: { id: workspaceId },
+      data: { name: dto.name },
+      include: {
+        members: {
+          include: { user: { select: { id: true, name: true, email: true } } },
+        },
+        _count: { select: { projects: true } },
+      },
     });
-    if (!actor || (actor.role !== Role.OWNER && actor.role !== Role.ADMIN)) {
-      throw new ForbiddenException('Only owners/admins can add members');
+  }
+
+  async remove(userId: string, workspaceId: string) {
+    const member = await this.requireMember(userId, workspaceId);
+    if (member.role !== Role.OWNER) {
+      throw new ForbiddenException('Only owners can delete a workspace');
     }
+    await this.get(userId, workspaceId);
+    await this.prisma.workspace.delete({ where: { id: workspaceId } });
+    return { ok: true };
+  }
+
+  async addMember(actorId: string, workspaceId: string, dto: AddMemberDto) {
+    await this.requireOwnerOrAdmin(actorId, workspaceId);
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email.toLowerCase() },
     });

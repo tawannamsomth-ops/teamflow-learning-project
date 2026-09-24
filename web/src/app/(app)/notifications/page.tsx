@@ -1,6 +1,6 @@
 'use client';
 
-import { Alert, Button, Card, Empty, List, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Empty, List, Skeleton, Tag, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
 import { api } from '@/lib/api';
@@ -9,7 +9,7 @@ import type { Notification } from '@/lib/types';
 export default function NotificationsPage() {
   const [items, setItems] = useState<Notification[]>([]);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   async function load() {
     setLoading(true);
@@ -34,44 +34,65 @@ export default function NotificationsPage() {
   return (
     <AppShell title="Notifications">
       {error ? (
-        <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} />
+        <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />
       ) : null}
+
       <Card>
-        <List
-          loading={loading}
-          locale={{ emptyText: <Empty description="No notifications" /> }}
-          dataSource={items}
-          renderItem={(item) => (
-            <List.Item
-              actions={
-                item.read
-                  ? []
-                  : [
-                      <Button key="read" type="link" onClick={() => void markRead(item.id)}>
-                        Mark read
-                      </Button>,
-                    ]
-              }
-            >
-              <List.Item.Meta
-                title={
-                  <Typography.Text>
-                    {item.title}{' '}
-                    {!item.read ? <Tag color="red">Unread</Tag> : <Tag>Read</Tag>}
-                  </Typography.Text>
+        {loading ? (
+          <Skeleton active paragraph={{ rows: 5 }} />
+        ) : (
+          <List
+            itemLayout="vertical"
+            dataSource={items}
+            locale={{
+              emptyText: (
+                <Empty
+                  description="You're all caught up"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                />
+              ),
+            }}
+            renderItem={(item) => (
+              <List.Item
+                actions={
+                  item.read
+                    ? undefined
+                    : [
+                        <Button
+                          key="read"
+                          type="link"
+                          onClick={() => void markRead(item.id)}
+                          style={{ minHeight: 44 }}
+                        >
+                          Mark as read
+                        </Button>,
+                      ]
                 }
-                description={
-                  <>
-                    <div>{item.body}</div>
-                    <Typography.Text type="secondary">
-                      {new Date(item.createdAt).toLocaleString()}
+              >
+                <List.Item.Meta
+                  title={
+                    <Typography.Text>
+                      {item.title}{' '}
+                      {!item.read ? (
+                        <Tag color="red">Unread</Tag>
+                      ) : (
+                        <Tag>Read</Tag>
+                      )}
                     </Typography.Text>
-                  </>
-                }
-              />
-            </List.Item>
-          )}
-        />
+                  }
+                  description={
+                    <>
+                      <div style={{ marginBottom: 4 }}>{item.body}</div>
+                      <Typography.Text type="secondary">
+                        {new Date(item.createdAt).toLocaleString()}
+                      </Typography.Text>
+                    </>
+                  }
+                />
+              </List.Item>
+            )}
+          />
+        )}
       </Card>
     </AppShell>
   );

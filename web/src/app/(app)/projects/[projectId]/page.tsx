@@ -6,8 +6,12 @@ import {
   Alert,
   Button,
   Card,
+  Collapse,
+  Empty,
+  Grid,
   Input,
   Select,
+  Skeleton,
   Space,
   Typography,
 } from 'antd';
@@ -29,9 +33,12 @@ import {
 export default function ProjectBoardPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const router = useRouter();
+  const screens = Grid.useBreakpoint();
+  const isMobile = !screens.md;
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<string | undefined>();
@@ -42,18 +49,15 @@ export default function ProjectBoardPage() {
   const [adding, setAdding] = useState(false);
 
   const members: User[] = useMemo(
-    () =>
-      project?.workspace?.members?.map((m) => m.user).filter(Boolean) ?? [],
+    () => project?.workspace?.members?.map((m) => m.user).filter(Boolean) ?? [],
     [project],
   );
   const labels: Label[] = project?.labels ?? [];
 
   const load = useCallback(async () => {
+    setLoading(true);
     try {
-      const params = new URLSearchParams({
-        projectId,
-        pageSize: '100',
-      });
+      const params = new URLSearchParams({ projectId, pageSize: '100' });
       if (search) params.set('search', search);
       if (status) params.set('status', status);
       if (priority) params.set('priority', priority);
@@ -67,6 +71,8 @@ export default function ProjectBoardPage() {
       setTasks(list.items);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load board');
+    } finally {
+      setLoading(false);
     }
   }, [projectId, search, status, priority, assigneeId]);
 
@@ -102,7 +108,7 @@ export default function ProjectBoardPage() {
       setTitle('');
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Create failed');
+      setError(err instanceof Error ? err.message : 'Could not add task');
     } finally {
       setAdding(false);
     }
@@ -125,73 +131,81 @@ export default function ProjectBoardPage() {
     }
   }
 
+  const filters = (
+    <Space wrap size={[8, 8]} style={{ width: '100%' }}>
+      <Input.Search
+        placeholder="Search tasks"
+        allowClear
+        style={{ width: isMobile ? '100%' : 220 }}
+        onSearch={setSearch}
+        enterButton
+      />
+      <Select
+        allowClear
+        placeholder="Status"
+        style={{ width: isMobile ? '100%' : 140 }}
+        options={[...STATUSES]}
+        value={status}
+        onChange={setStatus}
+      />
+      <Select
+        allowClear
+        placeholder="Priority"
+        style={{ width: isMobile ? '100%' : 140 }}
+        options={[...PRIORITIES]}
+        value={priority}
+        onChange={setPriority}
+      />
+      <Select
+        allowClear
+        placeholder="Assignee"
+        style={{ width: isMobile ? '100%' : 180 }}
+        options={members.map((m) => ({ value: m.id, label: m.name }))}
+        value={assigneeId}
+        onChange={setAssigneeId}
+      />
+    </Space>
+  );
+
   return (
     <AppShell
       title={project?.name ?? 'Board'}
       extra={
-        <Link href="/dashboard">
-          <Button>Back to dashboard</Button>
+        <Link href="/projects">
+          <Button>All projects</Button>
         </Link>
       }
     >
       {error ? (
         <Alert
           type="error"
-          message={error}
           showIcon
+          message={error}
           style={{ marginBottom: 16 }}
           closable
           onClose={() => setError('')}
         />
       ) : null}
 
-      <Card size="small" style={{ marginBottom: 16 }}>
-        <Space wrap style={{ width: '100%', justifyContent: 'space-between' }}>
-          <Space wrap>
-            <Input.Search
-              placeholder="Search tasks"
-              allowClear
-              style={{ width: 220 }}
-              onSearch={(v) => setSearch(v)}
-            />
-            <Select
-              allowClear
-              placeholder="Status"
-              style={{ width: 140 }}
-              options={[...STATUSES]}
-              value={status}
-              onChange={setStatus}
-            />
-            <Select
-              allowClear
-              placeholder="Priority"
-              style={{ width: 140 }}
-              options={[...PRIORITIES]}
-              value={priority}
-              onChange={setPriority}
-            />
-            <Select
-              allowClear
-              placeholder="Assignee"
-              style={{ width: 180 }}
-              options={members.map((m) => ({ value: m.id, label: m.name }))}
-              value={assigneeId}
-              onChange={setAssigneeId}
-            />
-          </Space>
-          <Typography.Text type="secondary">
-            Live board · drag cards · click to edit
-          </Typography.Text>
-        </Space>
-      </Card>
+      {isMobile ? (
+        <Collapse
+          style={{ marginBottom: 12 }}
+          items={[{ key: 'filters', label: 'Filters & search', children: filters }]}
+        />
+      ) : (
+        <Card size="small" style={{ marginBottom: 12 }}>
+          {filters}
+        </Card>
+      )}
 
-      <Card size="small" style={{ marginBottom: 16 }}>
+      <Card size="small" style={{ marginBottom: 12 }}>
         <Space.Compact style={{ width: '100%' }}>
           <Input
             placeholder="Add a task…"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onPressEnter={() => void createTask()}
+            aria-label="New task title"
           />
           <Button type="primary" loading={adding} onClick={() => void createTask()}>
             Add
@@ -199,14 +213,29 @@ export default function ProjectBoardPage() {
         </Space.Compact>
       </Card>
 
-      <KanbanBoard
-        tasks={tasks}
-        onMove={onMove}
-        onOpen={(id) => {
-          setOpenTaskId(id);
-          setDrawerOpen(true);
-        }}
-      />
+      {loading && !tasks.length ? (
+        <Skeleton active paragraph={{ rows: 8 }} />
+      ) : !tasks.length ? (
+        <Card>
+          <Empty
+            description="No tasks match these filters"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          >
+            <Typography.Text type="secondary">
+              Add a task above, or clear filters
+            </Typography.Text>
+          </Empty>
+        </Card>
+      ) : (
+        <KanbanBoard
+          tasks={tasks}
+          onMove={onMove}
+          onOpen={(id) => {
+            setOpenTaskId(id);
+            setDrawerOpen(true);
+          }}
+        />
+      )}
 
       <TaskDrawer
         open={drawerOpen}

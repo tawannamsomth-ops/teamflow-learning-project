@@ -1,15 +1,21 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
+  Patch,
   Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AddMemberDto, CreateWorkspaceDto } from './dto/workspace.dto';
+import {
+  AddMemberDto,
+  CreateWorkspaceDto,
+  UpdateWorkspaceDto,
+} from './dto/workspace.dto';
 import { WorkspacesService } from './workspaces.service';
 
 @ApiTags('workspaces')
@@ -38,6 +44,23 @@ export class WorkspacesController {
     @Param('workspaceId') workspaceId: string,
   ) {
     return this.workspaces.get(req.user.userId, workspaceId);
+  }
+
+  @Patch(':workspaceId')
+  update(
+    @Req() req: { user: { userId: string } },
+    @Param('workspaceId') workspaceId: string,
+    @Body() dto: UpdateWorkspaceDto,
+  ) {
+    return this.workspaces.update(req.user.userId, workspaceId, dto);
+  }
+
+  @Delete(':workspaceId')
+  remove(
+    @Req() req: { user: { userId: string } },
+    @Param('workspaceId') workspaceId: string,
+  ) {
+    return this.workspaces.remove(req.user.userId, workspaceId);
   }
 
   @Post(':workspaceId/members')

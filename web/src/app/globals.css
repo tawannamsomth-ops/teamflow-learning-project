@@ -1,6 +1,11 @@
-/* Ant Design owns UI. Keep only a minimal page reset. */
+/* Minimal reset — Ant Design owns UI */
 html,
 body {
   margin: 0;
   min-height: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+* {
+  box-sizing: border-box;
 }

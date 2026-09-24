@@ -5,6 +5,7 @@ import {
   DragEndEvent,
   DragOverlay,
   PointerSensor,
+  TouchSensor,
   closestCorners,
   useDroppable,
   useSensor,
@@ -16,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Card, Space, Tag, Typography } from 'antd';
+import { Button, Card, Space, Tag, Typography } from 'antd';
 import { useMemo, useState } from 'react';
 import { STATUSES, type Task } from '@/lib/types';
 
@@ -51,13 +52,17 @@ function TaskCardItem({
         hoverable
         styles={{ body: { padding: 12 } }}
         title={
-          <span {...attributes} {...listeners} style={{ cursor: 'grab', userSelect: 'none' }}>
+          <span
+            {...attributes}
+            {...listeners}
+            style={{ cursor: 'grab', userSelect: 'none', display: 'block' }}
+            aria-label={`Drag ${task.title}`}
+          >
             ⋮⋮ {task.title}
           </span>
         }
-        onClick={() => onOpen(task.id)}
       >
-        <Space size={4} wrap>
+        <Space size={[4, 4]} wrap style={{ marginBottom: 8 }}>
           <Tag color={priorityColor[task.priority]}>{task.priority}</Tag>
           {task.assignee ? (
             <Typography.Text type="secondary">{task.assignee.name}</Typography.Text>
@@ -71,6 +76,9 @@ function TaskCardItem({
             </Tag>
           ))}
         </Space>
+        <Button type="link" block onClick={() => onOpen(task.id)} style={{ padding: 0, height: 36 }}>
+          Open details
+        </Button>
       </Card>
     </div>
   );
@@ -89,7 +97,15 @@ function Column({
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
-    <div ref={setNodeRef} style={{ minWidth: 260, flex: '1 0 260px' }}>
+    <div
+      ref={setNodeRef}
+      style={{
+        minWidth: 260,
+        maxWidth: 320,
+        flex: '1 0 260px',
+        scrollSnapAlign: 'start',
+      }}
+    >
       <Card
         size="small"
         title={
@@ -100,13 +116,13 @@ function Column({
         }
         styles={{
           body: {
-            minHeight: 420,
+            minHeight: 360,
             background: isOver ? '#e6f4ff' : '#fafafa',
           },
         }}
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-          <Space direction="vertical" style={{ width: '100%' }} size={8}>
+          <Space orientation="vertical" style={{ width: '100%' }} size={8}>
             {tasks.map((t) => (
               <TaskCardItem key={t.id} task={t} onOpen={onOpen} />
             ))}
@@ -127,7 +143,8 @@ export function KanbanBoard({
   onOpen: (taskId: string) => void;
 }) {
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
   );
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -175,7 +192,16 @@ export function KanbanBoard({
       onDragStart={(e) => setActiveId(String(e.active.id))}
       onDragEnd={(e) => void onDragEnd(e)}
     >
-      <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          overflowX: 'auto',
+          paddingBottom: 12,
+          WebkitOverflowScrolling: 'touch',
+          scrollSnapType: 'x mandatory',
+        }}
+      >
         {STATUSES.map((col) => (
           <Column
             key={col.value}
