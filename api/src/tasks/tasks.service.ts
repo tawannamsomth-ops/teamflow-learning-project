@@ -72,7 +72,15 @@ export class TasksService {
     if (cacheKey) {
       try {
         const cached = await this.redis.get(cacheKey);
-        if (cached) return JSON.parse(cached);
+        if (cached) {
+          return JSON.parse(cached) as {
+            items: unknown[];
+            total: number;
+            page: number;
+            pageSize: number;
+            totalPages: number;
+          };
+        }
       } catch {
         /* ignore cache miss/errors */
       }
@@ -82,7 +90,11 @@ export class TasksService {
       this.prisma.task.findMany({
         where,
         include: taskInclude,
-        orderBy: [{ status: 'asc' }, { position: 'asc' }, { updatedAt: 'desc' }],
+        orderBy: [
+          { status: 'asc' },
+          { position: 'asc' },
+          { updatedAt: 'desc' },
+        ],
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),

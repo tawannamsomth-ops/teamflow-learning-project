@@ -11,7 +11,11 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
+import {
+  CreateLabelDto,
+  CreateProjectDto,
+  UpdateProjectDto,
+} from './dto/project.dto';
 import { ProjectsService } from './projects.service';
 
 @ApiTags('projects')
@@ -52,5 +56,14 @@ export class ProjectsController {
     @Body() dto: UpdateProjectDto,
   ) {
     return this.projects.update(req.user.userId, projectId, dto);
+  }
+
+  @Post(':projectId/labels')
+  createLabel(
+    @Req() req: { user: { userId: string } },
+    @Param('projectId') projectId: string,
+    @Body() dto: CreateLabelDto,
+  ) {
+    return this.projects.createLabel(req.user.userId, projectId, dto);
   }
 }

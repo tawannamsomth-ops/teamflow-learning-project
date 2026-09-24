@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Role } from '@prisma/client';
+import { AuthedRequest } from './auth-request';
 
 export const ROLES_KEY = 'roles';
 export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
@@ -20,8 +21,8 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
     if (!required?.length) return true;
-    const { user } = context.switchToHttp().getRequest();
-    const role = user?.workspaceRole as Role | undefined;
+    const req = context.switchToHttp().getRequest<AuthedRequest>();
+    const role = req.user?.workspaceRole;
     return !!role && required.includes(role);
   }
 }

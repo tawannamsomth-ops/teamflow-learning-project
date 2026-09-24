@@ -31,7 +31,8 @@ export class TasksGateway implements OnGatewayConnection {
       const payload = await this.jwt.verifyAsync<{ sub: string }>(token, {
         secret: process.env.JWT_SECRET ?? 'teamflow-dev-secret',
       });
-      client.data.userId = payload.sub;
+      const data = client.data as { userId?: string };
+      data.userId = payload.sub;
     } catch {
       client.disconnect();
     }

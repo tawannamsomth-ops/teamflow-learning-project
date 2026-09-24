@@ -29,3 +29,15 @@ export class UpdateProjectDto {
   @IsString()
   description?: string;
 }
+
+export class CreateLabelDto {
+  @ApiProperty()
+  @IsString()
+  @MinLength(1)
+  name!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  color?: string;
+}

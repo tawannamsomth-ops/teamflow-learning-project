@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Patch,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Param, Patch, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { NotificationsService } from './notifications.service';
@@ -23,10 +16,7 @@ export class NotificationsController {
   }
 
   @Patch(':id/read')
-  markRead(
-    @Req() req: { user: { userId: string } },
-    @Param('id') id: string,
-  ) {
+  markRead(@Req() req: { user: { userId: string } }, @Param('id') id: string) {
     return this.notifications.markRead(req.user.userId, id);
   }
 }

@@ -28,18 +28,12 @@ export class TasksController {
   constructor(private tasks: TasksService) {}
 
   @Get()
-  list(
-    @Req() req: { user: { userId: string } },
-    @Query() query: TaskQueryDto,
-  ) {
+  list(@Req() req: { user: { userId: string } }, @Query() query: TaskQueryDto) {
     return this.tasks.list(req.user.userId, query);
   }
 
   @Post()
-  create(
-    @Req() req: { user: { userId: string } },
-    @Body() dto: CreateTaskDto,
-  ) {
+  create(@Req() req: { user: { userId: string } }, @Body() dto: CreateTaskDto) {
     return this.tasks.create(req.user.userId, dto);
   }
 

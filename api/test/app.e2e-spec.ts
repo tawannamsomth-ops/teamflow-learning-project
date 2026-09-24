@@ -31,7 +31,11 @@ describe('TeamFlow API (e2e)', () => {
       .send({ email, password: 'password123', name: 'Tester' })
       .expect(201);
 
-    expect(res.body.accessToken).toBeDefined();
-    expect(res.body.user.email).toBe(email);
+    const body = res.body as {
+      accessToken?: string;
+      user?: { email?: string };
+    };
+    expect(body.accessToken).toBeDefined();
+    expect(body.user?.email).toBe(email);
   });
 });

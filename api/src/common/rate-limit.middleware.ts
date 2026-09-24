@@ -21,7 +21,10 @@ export class RateLimitMiddleware implements NestMiddleware {
       res.setHeader('X-RateLimit-Limit', '100');
       res.setHeader('X-RateLimit-Remaining', String(Math.max(0, 100 - count)));
       if (count > 100) {
-        throw new HttpException('Too many requests', HttpStatus.TOO_MANY_REQUESTS);
+        throw new HttpException(
+          'Too many requests',
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
       }
     } catch (e) {
       if (e instanceof HttpException) throw e;

@@ -23,7 +23,14 @@ export class DashboardController {
     const cacheKey = `stats:${userId}:${workspaceId ?? 'all'}`;
     try {
       const cached = await this.redis.get(cacheKey);
-      if (cached) return JSON.parse(cached);
+      if (cached) {
+        return JSON.parse(cached) as {
+          projects: number;
+          tasksByStatus: Record<string, number>;
+          overdue: number;
+          assignedToMe: number;
+        };
+      }
     } catch {
       /* ignore */
     }

@@ -1,28 +1,28 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Alert, Button, Card, Flex, Form, Input, Typography } from 'antd';
+import { useState } from 'react';
 import { api, setAuth } from '@/lib/api';
+import type { User } from '@/lib/types';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function onFinish(values: {
+    name: string;
+    email: string;
+    password: string;
+  }) {
     setLoading(true);
     setError('');
     try {
-      const res = await api<{
-        accessToken: string;
-        user: { id: string; email: string; name: string };
-      }>('/auth/register', {
+      const res = await api<{ accessToken: string; user: User }>('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify(values),
       });
       setAuth(res.accessToken, res.user);
       router.push('/dashboard');
@@ -34,37 +34,39 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="auth-shell">
-      <form className="auth-card" onSubmit={onSubmit}>
-        <p className="brand">TeamFlow</p>
-        <h1>Create account</h1>
-        <p className="muted">Get a personal workspace instantly</p>
-        {error ? <p className="error">{error}</p> : null}
-        <label>
-          Name
-          <input value={name} onChange={(e) => setName(e.target.value)} required />
-        </label>
-        <label>
-          Email
-          <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required />
-        </label>
-        <label>
-          Password
-          <input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            type="password"
-            minLength={6}
-            required
-          />
-        </label>
-        <button disabled={loading} type="submit">
-          {loading ? 'Creating…' : 'Create account'}
-        </button>
-        <p className="muted">
-          Have an account? <a href="/login">Sign in</a>
-        </p>
-      </form>
-    </main>
+    <Flex
+      align="center"
+      justify="center"
+      style={{ minHeight: '100vh', background: '#f0f2f5', padding: 24 }}
+    >
+      <Card style={{ width: 420 }}>
+        <Typography.Title level={2} style={{ marginTop: 0, textAlign: 'center' }}>
+          TeamFlow
+        </Typography.Title>
+        <Typography.Paragraph type="secondary" style={{ textAlign: 'center' }}>
+          Create an account and get a workspace instantly
+        </Typography.Paragraph>
+        {error ? (
+          <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} />
+        ) : null}
+        <Form layout="vertical" onFinish={onFinish} size="large">
+          <Form.Item label="Name" name="name" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item label="Email" name="email" rules={[{ required: true, type: 'email' }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item label="Password" name="password" rules={[{ required: true, min: 6 }]}>
+            <Input.Password />
+          </Form.Item>
+          <Button type="primary" htmlType="submit" block loading={loading}>
+            Create account
+          </Button>
+        </Form>
+        <Typography.Paragraph style={{ marginTop: 16, marginBottom: 0, textAlign: 'center' }}>
+          Have an account? <Link href="/login">Sign in</Link>
+        </Typography.Paragraph>
+      </Card>
+    </Flex>
   );
 }

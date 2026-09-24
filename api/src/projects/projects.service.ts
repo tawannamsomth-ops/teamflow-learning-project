@@ -48,7 +48,15 @@ export class ProjectsService {
       },
       include: {
         labels: true,
-        workspace: { include: { members: true } },
+        workspace: {
+          include: {
+            members: {
+              include: {
+                user: { select: { id: true, name: true, email: true } },
+              },
+            },
+          },
+        },
         _count: { select: { tasks: true } },
       },
     });
@@ -61,6 +69,21 @@ export class ProjectsService {
     return this.prisma.project.update({
       where: { id: project.id },
       data: dto,
+    });
+  }
+
+  async createLabel(
+    userId: string,
+    projectId: string,
+    data: { name: string; color?: string },
+  ) {
+    await this.get(userId, projectId);
+    return this.prisma.label.create({
+      data: {
+        projectId,
+        name: data.name,
+        color: data.color ?? '#1677ff',
+      },
     });
   }
 }

@@ -6,7 +6,7 @@ Real-time project management for small teams. Learning portfolio app covering Ne
 
 | Layer | Tech |
 | --- | --- |
-| Frontend | Next.js 15, React, TypeScript, Tailwind, dnd-kit |
+| Frontend | Next.js 15, React, TypeScript, Ant Design |
 | Backend | NestJS modular monolith, REST + Socket.IO |
 | Data | MySQL + Prisma |
 | Cache / rate limit / pub-sub | Redis |

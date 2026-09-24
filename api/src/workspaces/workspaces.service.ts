@@ -15,7 +15,9 @@ export class WorkspacesService {
     return this.prisma.workspace.findMany({
       where: { members: { some: { userId } } },
       include: {
-        members: { include: { user: { select: { id: true, name: true, email: true } } } },
+        members: {
+          include: { user: { select: { id: true, name: true, email: true } } },
+        },
         _count: { select: { projects: true } },
       },
       orderBy: { createdAt: 'desc' },

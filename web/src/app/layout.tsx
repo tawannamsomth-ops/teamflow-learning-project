@@ -1,16 +1,6 @@
 import type { Metadata } from 'next';
-import { DM_Sans, Fraunces } from 'next/font/google';
+import { Providers } from '@/components/Providers';
 import './globals.css';
-
-const sans = DM_Sans({
-  variable: '--font-sans',
-  subsets: ['latin'],
-});
-
-const display = Fraunces({
-  variable: '--font-display',
-  subsets: ['latin'],
-});
 
 export const metadata: Metadata = {
   title: 'TeamFlow',
@@ -22,7 +12,9 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${sans.variable} ${display.variable}`}>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

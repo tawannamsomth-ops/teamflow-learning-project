@@ -31,4 +31,7 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`TeamFlow API http://localhost:${port}  docs=/docs`);
 }
-bootstrap();
+bootstrap().catch((err: unknown) => {
+  console.error(err);
+  process.exit(1);
+});

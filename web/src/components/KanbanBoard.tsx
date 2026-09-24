@@ -3,12 +3,12 @@
 import {
   DndContext,
   DragEndEvent,
+  DragOverlay,
   PointerSensor,
+  closestCorners,
+  useDroppable,
   useSensor,
   useSensors,
-  closestCorners,
-  DragOverlay,
-  useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -16,56 +16,62 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Card, Space, Tag, Typography } from 'antd';
 import { useMemo, useState } from 'react';
-
-export type TaskCard = {
-  id: string;
-  title: string;
-  status: string;
-  priority: string;
-  assignee?: { name: string } | null;
-  position: number;
-};
-
-const COLUMNS = [
-  { id: 'BACKLOG', title: 'Backlog' },
-  { id: 'TODO', title: 'To Do' },
-  { id: 'IN_PROGRESS', title: 'In Progress' },
-  { id: 'DONE', title: 'Done' },
-] as const;
+import { STATUSES, type Task } from '@/lib/types';
 
 const priorityColor: Record<string, string> = {
-  LOW: '#94a3b8',
-  MEDIUM: '#38bdf8',
-  HIGH: '#f59e0b',
-  URGENT: '#ef4444',
+  LOW: 'default',
+  MEDIUM: 'blue',
+  HIGH: 'orange',
+  URGENT: 'red',
 };
 
-function TaskItem({ task }: { task: TaskCard }) {
+function TaskCardItem({
+  task,
+  onOpen,
+}: {
+  task: Task;
+  onOpen: (id: string) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: task.id, data: { status: task.status } });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.4 : 1,
-  };
+
   return (
     <div
       ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className="kanban-card"
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+      }}
     >
-      <div className="kanban-card-title">{task.title}</div>
-      <div className="kanban-card-meta">
-        <span
-          className="priority-dot"
-          style={{ background: priorityColor[task.priority] ?? '#94a3b8' }}
-        />
-        <span>{task.priority}</span>
-        {task.assignee ? <span>· {task.assignee.name}</span> : null}
-      </div>
+      <Card
+        size="small"
+        hoverable
+        styles={{ body: { padding: 12 } }}
+        title={
+          <span {...attributes} {...listeners} style={{ cursor: 'grab', userSelect: 'none' }}>
+            ⋮⋮ {task.title}
+          </span>
+        }
+        onClick={() => onOpen(task.id)}
+      >
+        <Space size={4} wrap>
+          <Tag color={priorityColor[task.priority]}>{task.priority}</Tag>
+          {task.assignee ? (
+            <Typography.Text type="secondary">{task.assignee.name}</Typography.Text>
+          ) : null}
+          {task.dueDate ? (
+            <Tag>{new Date(task.dueDate).toLocaleDateString()}</Tag>
+          ) : null}
+          {task.labels?.map((l) => (
+            <Tag key={l.label.id} color={l.label.color}>
+              {l.label.name}
+            </Tag>
+          ))}
+        </Space>
+      </Card>
     </div>
   );
 }
@@ -74,25 +80,39 @@ function Column({
   id,
   title,
   tasks,
+  onOpen,
 }: {
   id: string;
   title: string;
-  tasks: TaskCard[];
+  tasks: Task[];
+  onOpen: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
-    <div className={`kanban-column ${isOver ? 'over' : ''}`} ref={setNodeRef}>
-      <div className="kanban-column-head">
-        <h3>{title}</h3>
-        <span>{tasks.length}</span>
-      </div>
-      <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-        <div className="kanban-column-body">
-          {tasks.map((t) => (
-            <TaskItem key={t.id} task={t} />
-          ))}
-        </div>
-      </SortableContext>
+    <div ref={setNodeRef} style={{ minWidth: 260, flex: '1 0 260px' }}>
+      <Card
+        size="small"
+        title={
+          <Space>
+            {title}
+            <Tag>{tasks.length}</Tag>
+          </Space>
+        }
+        styles={{
+          body: {
+            minHeight: 420,
+            background: isOver ? '#e6f4ff' : '#fafafa',
+          },
+        }}
+      >
+        <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+          <Space direction="vertical" style={{ width: '100%' }} size={8}>
+            {tasks.map((t) => (
+              <TaskCardItem key={t.id} task={t} onOpen={onOpen} />
+            ))}
+          </Space>
+        </SortableContext>
+      </Card>
     </div>
   );
 }
@@ -100,16 +120,20 @@ function Column({
 export function KanbanBoard({
   tasks,
   onMove,
+  onOpen,
 }: {
-  tasks: TaskCard[];
+  tasks: Task[];
   onMove: (taskId: string, status: string, position: number) => Promise<void>;
+  onOpen: (taskId: string) => void;
 }) {
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  );
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const byStatus = useMemo(() => {
-    const map: Record<string, TaskCard[]> = {};
-    for (const col of COLUMNS) map[col.id] = [];
+    const map: Record<string, Task[]> = {};
+    for (const s of STATUSES) map[s.value] = [];
     for (const t of tasks) {
       (map[t.status] ?? map.TODO).push(t);
     }
@@ -131,7 +155,7 @@ export function KanbanBoard({
 
     let newStatus = task.status;
     const overId = String(over.id);
-    if (COLUMNS.some((c) => c.id === overId)) {
+    if (STATUSES.some((s) => s.value === overId)) {
       newStatus = overId;
     } else {
       const overTask = tasks.find((t) => t.id === overId);
@@ -149,18 +173,24 @@ export function KanbanBoard({
       sensors={sensors}
       collisionDetection={closestCorners}
       onDragStart={(e) => setActiveId(String(e.active.id))}
-      onDragEnd={onDragEnd}
+      onDragEnd={(e) => void onDragEnd(e)}
     >
-      <div className="kanban">
-        {COLUMNS.map((col) => (
-          <Column key={col.id} id={col.id} title={col.title} tasks={byStatus[col.id] ?? []} />
+      <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
+        {STATUSES.map((col) => (
+          <Column
+            key={col.value}
+            id={col.value}
+            title={col.label}
+            tasks={byStatus[col.value] ?? []}
+            onOpen={onOpen}
+          />
         ))}
       </div>
       <DragOverlay>
         {active ? (
-          <div className="kanban-card dragging">
-            <div className="kanban-card-title">{active.title}</div>
-          </div>
+          <Card size="small" style={{ width: 240 }}>
+            <Typography.Text strong>{active.title}</Typography.Text>
+          </Card>
         ) : null}
       </DragOverlay>
     </DndContext>
